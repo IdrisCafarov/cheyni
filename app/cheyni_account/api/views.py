@@ -95,13 +95,13 @@ class AccountActivationView(View):
             token, created = Token.objects.get_or_create(user=user)
             message_type = "success"  # Or "success" based on the type of message
             custom_message = "Your Account Succesfully Activated !"
-            redirect_url = f'http://localhost:3000/api/login/?message_type={message_type}&message={custom_message}'
+            redirect_url = f'http://localhost:5173/login/?message_type={message_type}&message={custom_message}'
             return redirect(redirect_url)
             
         else:
             message_type = "error"  # Or "success" based on the type of message
             custom_message = "The session time for the link has expired. Please make a new request."
-            redirect_url = f'http://localhost:3000/api/login/?message_type={message_type}&message={custom_message}'
+            redirect_url = f'http://localhost:5173/login/?message_type={message_type}&message={custom_message}'
             return redirect(redirect_url)
             
 
