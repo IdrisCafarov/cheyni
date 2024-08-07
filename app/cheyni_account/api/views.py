@@ -104,6 +104,19 @@ class AccountActivationView(View):
             custom_message = "The session time for the link has expired. Please make a new request."
             redirect_url = f'http://localhost:5173/login/?message_type={message_type}&message={custom_message}'
             return redirect(redirect_url)
+        
+
+
+class ChangePasswordView(generics.UpdateAPIView):
+    serializer_class = ChangePasswordSerializer
+    permission_classes = [IsAuthenticated]
+
+    def update(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "Password updated successfully"}, status=status.HTTP_200_OK)
+
 
 
 class PasswordResetRequestView(generics.GenericAPIView):
@@ -156,3 +169,6 @@ class ValidateResetTokenView(APIView):
             return Response({"message": "Token is valid."}, status=status.HTTP_200_OK)
         else:
             return Response({"detail": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+

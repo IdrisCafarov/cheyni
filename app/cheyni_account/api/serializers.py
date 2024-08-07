@@ -152,7 +152,6 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         
         return data
 
-        return data
 
     def save(self):
         uid = force_text(urlsafe_base64_decode(self.validated_data['uid']))
@@ -162,4 +161,41 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         user.save()
         return user
     
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(required=True)
+    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
+    password2 = serializers.CharField(write_only=True, required=True)
 
+    def validate(self, data):
+        user = self.context['request'].user
+        old_password = data['old_password']
+        password = data['password']
+        password2 = data['password2']
+
+        # Check if old password is correct
+        if not user.check_password(old_password):
+            raise serializers.ValidationError({"old_password": "Old password is incorrect."})
+
+        # Validate new password length
+        if len(password) < 6:
+            raise serializers.ValidationError({"password": "Password must be at least 6 characters long."})
+
+        # Validate new password
+        try:
+            validate_password(password, user)
+        except ValidationError as e:
+            raise serializers.ValidationError({"password": e.messages})
+
+        # Check if passwords match
+        if password != password2:
+            raise serializers.ValidationError({"password2": "Passwords do not match."})
+
+        return data
+    
+
+    def save(self):
+        user = self.context['request'].user
+        password = self.validated_data['password']
+        user.set_password(password)
+        user.save()
+        return user
