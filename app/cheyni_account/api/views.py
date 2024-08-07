@@ -16,6 +16,7 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from .tokens import *
 from rest_framework.authtoken.models import Token
 from django.views import View
+from rest_framework import status
 
 
 
@@ -72,7 +73,6 @@ class RegistrationView(generics.CreateAPIView):
         msg.content_subtype = 'html'
         msg.mixed_subtype = 'related'
 
-        print(msg)
 
         msg.send()
         
@@ -103,7 +103,16 @@ class AccountActivationView(View):
             custom_message = "The session time for the link has expired. Please make a new request."
             redirect_url = f'http://localhost:5173/login/?message_type={message_type}&message={custom_message}'
             return redirect(redirect_url)
-            
+
+
+class PasswordResetRequestView(generics.GenericAPIView):
+    serializer_class = PasswordResetRequestSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "Password reset email sent."}, status=status.HTTP_200_OK)
 
 
 

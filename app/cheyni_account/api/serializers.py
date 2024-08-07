@@ -6,6 +6,13 @@ from django.conf import settings
 from django.http import HttpResponse
 
 from django.contrib.auth.password_validation import validate_password
+from django.utils.encoding import force_bytes, force_text
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.template.loader import render_to_string
+from django.template.loader import get_template
+from django.core.mail import EmailMessage
+
 
 
 User = get_user_model()
@@ -84,3 +91,39 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         instance.surname = validated_data.get('surname', instance.surname)
         instance.save()
         return instance
+    
+
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate(self, data):
+        email = data.get('email')
+        if not User.objects.filter(email=email).exists():
+            raise serializers.ValidationError("No user with this email address.")
+        return data
+
+    def save(self):
+        email = self.validated_data['email']
+        user = User.objects.get(email=email)
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        
+        
+        mail_subject = 'Reset Password !'
+        ctx = {
+            'uid': uid,
+            'token': token,
+        }
+        message = get_template('password-reset.html').render(ctx)
+        to_email = user.email
+        to_list = [to_email]
+        from_mail = settings.DEFAULT_FROM_EMAIL
+        msg = EmailMessage(mail_subject, message, from_mail, to_list)
+        msg.content_subtype = 'html'
+        msg.mixed_subtype = 'related'
+
+
+        msg.send()
+        
