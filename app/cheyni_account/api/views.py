@@ -17,6 +17,7 @@ from .tokens import *
 from rest_framework.authtoken.models import Token
 from django.views import View
 from rest_framework import status
+from rest_framework.views import APIView
 
 
 
@@ -113,6 +114,17 @@ class PasswordResetRequestView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"message": "Password reset email sent."}, status=status.HTTP_200_OK)
+    
+
+
+class PasswordResetConfirmView(generics.GenericAPIView):
+    serializer_class = PasswordResetConfirmSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "Password has been reset."}, status=status.HTTP_200_OK)
 
 
 
@@ -122,3 +134,25 @@ class UserUpdateView(generics.UpdateAPIView):
 
     def get_object(self):
         return self.request.user
+    
+
+
+class ValidateResetTokenView(APIView):
+
+    def get(self, request, *args, **kwargs):
+        uid = request.query_params.get('uid')
+        token = request.query_params.get('token')
+
+        if not uid or not token:
+            return Response({"detail": "UID and token are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            uid = force_text(urlsafe_base64_decode(uid))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({"detail": "Invalid UID."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if default_token_generator.check_token(user, token):
+            return Response({"message": "Token is valid."}, status=status.HTTP_200_OK)
+        else:
+            return Response({"detail": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)

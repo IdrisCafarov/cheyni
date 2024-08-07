@@ -7,5 +7,7 @@ urlpatterns = [
     path('update/', UserUpdateView.as_view(), name='user-update'),  # New endpoint for updating user details
     path('activate/<str:uidb64>/<str:token>/', AccountActivationView.as_view(), name='activate'),
     path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset-request'),
+    path('validate-reset-token/', ValidateResetTokenView.as_view(), name='validate-reset-token'),
+    path('password-reset-confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
 
 ]

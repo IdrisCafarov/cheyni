@@ -12,6 +12,7 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.template.loader import render_to_string
 from django.template.loader import get_template
 from django.core.mail import EmailMessage
+from django.core.exceptions import ValidationError
 
 
 
@@ -127,3 +128,38 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 
         msg.send()
         
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    new_password = serializers.CharField()
+
+    def validate(self, data):
+        uid = force_text(urlsafe_base64_decode(data['uid']))
+        token = data['token']
+        new_password = data['new_password']
+        try:
+            user = User.objects.get(pk=uid)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Invalid user.")
+        if not default_token_generator.check_token(user, token):
+            raise serializers.ValidationError("Invalid or expired token.")
+        
+        try:
+            validate_password(new_password, user)
+        except ValidationError as e:
+            raise serializers.ValidationError({"new_password": e.messages})
+        
+        return data
+
+        return data
+
+    def save(self):
+        uid = force_text(urlsafe_base64_decode(self.validated_data['uid']))
+        new_password = self.validated_data['new_password']
+        user = User.objects.get(pk=uid)
+        user.set_password(new_password)
+        user.save()
+        return user
+    
+
